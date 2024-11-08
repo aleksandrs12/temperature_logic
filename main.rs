@@ -1,46 +1,48 @@
 use std::io;
 use std::time::{Duration, Instant};
 
+static mut DEBUG_COUNTER: i32 = 0;
 fn get_current_temperature() -> i32 {
-    let mut input = String::new();
-    io::stdin().read_line(&mut input).expect("Failed to read input");
-    input.trim().parse().expect("Invalid temperature value")
-}
-
-fn find_average(list: &[i32]) -> f64 {
-    list.iter().sum::<i32>() as f64 / list.len() as f64
-}
-
-fn find_amp(list: &[i32]) -> f64 {
-    let max = list.iter().max().unwrap();
-    let min = list.iter().min().unwrap();
-    *max as f64 / *min as f64
-}
-
-fn find_freq(list: &[i32], base: i32) -> i32 {
-    let mut output = 0;
-    for i in 1..list.len() {
-        if list[i] == base && list[i - 1] != base {
-            output += 1;
-        }
+    //let mut input = String::new();
+    //io::stdin().read_line(&mut input).expect("Failed to read input");
+    //input.trim().parse().expect("Invalid temperature value")
+    unsafe{
+        DEBUG_COUNTER += 1;
+    
+    if DEBUG_COUNTER < 1000{
+        return DEBUG_COUNTER;
     }
-    output
+    println!("Temperature value: {}", ((f64::from(DEBUG_COUNTER) - 1000.0).sin() / (f64::from(DEBUG_COUNTER) - 1000.0) * 500.0 + 1000.0).round() as i32);
+    return ((f64::from(DEBUG_COUNTER) - 1000.0).sin() / (f64::from(DEBUG_COUNTER) - 1000.0) * 500.0 + 1000.0).round() as i32;
 }
+}
+
+fn find_average(list: &[f64]) -> f64 {
+    list.iter().sum::<f64>() / list.len() as f64
+}
+
+fn find_amp(list: &[f64]) -> f64 {
+    let max = list.iter().max_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal)).unwrap();
+    let min = list.iter().min_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal)).unwrap();
+    max - min
+}
+
 
 const MAX_AVERAGE_DIVERGENCE: f64 = 0.1;
-const MAX_AMP: f64 = 1.0;
+const MAX_AMP: f64 = 0.2;
 const MAX_TIME_REACH_TARGET: Duration = Duration::from_secs(10);
 const MAX_TIME_STABILIZE: Duration = Duration::from_secs(10);
+const HISTORY_SIZE: usize = 50;
 
 fn set_temp(t: i32) -> i32 {
+    let target_temperature: f64 = f64::from(t) / 10.0;
     let time_start = Instant::now();
     let mut target_temperature_reached = false;
-    let history_size = 10;
-    let mut historical_data = [0; history_size];
+    let mut historical_data: [f64; HISTORY_SIZE] = [0.0; HISTORY_SIZE];
 
     while !target_temperature_reached {
-        let current_t = get_current_temperature();
-        if current_t >= t {
+        let current_t: f64 = f64::from(get_current_temperature()) / 10.0;
+        if current_t >= target_temperature {
             target_temperature_reached = true;
             break;
         }
@@ -52,18 +54,18 @@ fn set_temp(t: i32) -> i32 {
     println!("Temperature reached, now stabilizing");
 
     let time_start = Instant::now();
-    for i in 0..history_size {
-        historical_data[i] = get_current_temperature();
+    for i in 0..HISTORY_SIZE {
+        historical_data[i] = f64::from(get_current_temperature()) / 10.0;
     }
 
     loop {
-        let current_t = get_current_temperature();
+        let current_t = f64::from(get_current_temperature()) / 10.0;
         historical_data.rotate_left(1);
-        historical_data[history_size - 1] = current_t;
+        historical_data[HISTORY_SIZE - 1] = current_t;
         let amp = find_amp(&historical_data);
         let avg = find_average(&historical_data);
 
-        if amp <= MAX_AMP && (avg - t).abs() < MAX_AVERAGE_DIVERGENCE {
+        if amp <= MAX_AMP && (avg - target_temperature).abs() < MAX_AVERAGE_DIVERGENCE {
             return 1; // send OK code
         }
 
@@ -74,5 +76,5 @@ fn set_temp(t: i32) -> i32 {
 }
 
 fn main() {
-    set_temp(100);
+    println!("The return code is: {}", set_temp(1000)); // 100.0 C 
 }

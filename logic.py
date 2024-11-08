@@ -36,7 +36,7 @@ def set_temp(t):
 
     time_start = time.time()
     target_temperature_reached = False
-    history_size = 10
+    history_size = 50
     historical_data = [0]*history_size
 
     while True:
