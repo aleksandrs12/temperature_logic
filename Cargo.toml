@@ -1,0 +1,10 @@
+[package]
+name = "temperature_script"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+
+[[bin]]
+name = "temperature_script"
+path = "main.rs"

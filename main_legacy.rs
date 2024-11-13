@@ -1,5 +1,4 @@
 use std::io;
-use std::thread;
 use std::time::{Duration, Instant};
 
 static mut DEBUG_COUNTER: u16 = 0;
@@ -13,10 +12,10 @@ fn get_current_temperature() -> u16 {
     unsafe{
         DEBUG_COUNTER += 1;
         
-        if DEBUG_COUNTER < 1000{
+        if DEBUG_COUNTER < 950{
             return DEBUG_COUNTER;
         }
-        return ((f32::from(DEBUG_COUNTER) - 1000.0).sin() * 2.5 + 1000.0).round() as u16;
+        return ((f32::from(DEBUG_COUNTER) - 950.0).sin() * 2.5 + 950.0).round() as u16;
     }
     
 
@@ -37,13 +36,11 @@ const MAX_AVERAGE_DIVERGENCE: f32 = 1.0;
 const MAX_AMP: f32 = 0.5;
 const MAX_TIME_REACH_TARGET: Duration = Duration::from_secs(10);
 const MAX_TIME_STABILIZE: Duration = Duration::from_secs(10);
-const HISTORY_SIZE: usize = 100;
-const HISTORY_TIME: Duration = Duration::from_millis(1000);
+const HISTORY_SIZE: usize = 50;
 
 fn set_temp(t: u16) -> u16 {
     let target_temperature: f32 = f32::from(t) / 10.0;
     let time_start = Instant::now();
-    let time_between_reads: Duration = HISTORY_TIME / (HISTORY_SIZE as u32);
     let mut target_temperature_reached = false;
     let mut historical_data: [f32; HISTORY_SIZE] = [0.0; HISTORY_SIZE];
 
@@ -65,7 +62,6 @@ fn set_temp(t: u16) -> u16 {
     for i in 0..HISTORY_SIZE {
         historical_data[i] = f32::from(get_current_temperature()) / 10.0;
         println!("Temperature value: {} C", historical_data[i]);
-        thread::sleep(time_between_reads);
     }
 
     loop {
@@ -75,7 +71,6 @@ fn set_temp(t: u16) -> u16 {
         let amp = find_amp(&historical_data);
         let avg = find_average(&historical_data);
         println!("Temperature value: {} C,  Amp: {},  Avg: {}", current_t, amp, avg);
-        
 
         if amp <= MAX_AMP && (avg - target_temperature).abs() < MAX_AVERAGE_DIVERGENCE {
             return 1; // send OK code
@@ -84,7 +79,6 @@ fn set_temp(t: u16) -> u16 {
         if time_start.elapsed() >= MAX_TIME_STABILIZE {
             return 0; // send NOT OK code
         }
-        thread::sleep(time_between_reads);
     }
 }
 
