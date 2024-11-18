@@ -1,4 +1,3 @@
-use std::io;
 use std::thread;
 use std::time::{Duration, Instant};
 use std::error::Error;
@@ -43,14 +42,12 @@ fn set_temp(t: u16) -> Result<u16, Box<dyn Error>> {
     let target_temperature: f32 = f32::from(t) / 10.0;
     let time_start = Instant::now();
     let time_between_reads: Duration = HISTORY_TIME / (HISTORY_SIZE as u32);
-    let mut target_temperature_reached = false;
     let mut historical_data: [f32; HISTORY_SIZE] = [0.0; HISTORY_SIZE];
 
-    while !target_temperature_reached {
+    while true {
         let current_t: f32 = f32::from(get_current_temperature()?) / 10.0;
         println!("Temperature value: {} C", current_t);
         if current_t >= target_temperature {
-            target_temperature_reached = true;
             break;
         }
         if time_start.elapsed() >= MAX_TIME_REACH_TARGET {
