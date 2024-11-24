@@ -4,7 +4,7 @@ use std::error::Error;
 use std::result::Result;
 
 static mut DEBUG_COUNTER: u16 = 0;
-fn get_current_temperature() -> Result<u16, Box<dyn Error>> {
+fn get_current_temperature() -> Result<u16, String> {
     // This function should not be in production and is only here to simulate readings from sensors
     unsafe{
         DEBUG_COUNTER += 1;
@@ -31,20 +31,22 @@ fn find_amp(list: &[f32]) -> f32 {
 }
 
 
-const MAX_AVERAGE_DIVERGENCE: f32 = 1.0;
-const MAX_AMP: f32 = 0.5;
-const MAX_TIME_REACH_TARGET: Duration = Duration::from_secs(10);
-const MAX_TIME_STABILIZE: Duration = Duration::from_secs(10);
-const HISTORY_SIZE: usize = 100;
-const HISTORY_TIME: Duration = Duration::from_millis(1000);
-
 fn set_temp(t: u16) -> Result<u16, Box<dyn Error>> {
+    
+    const MAX_AVERAGE_DIVERGENCE: f32 = 1.0;
+    const MAX_AMP: f32 = 0.5;
+    const MAX_TIME_REACH_TARGET: Duration = Duration::from_secs(10);
+    const MAX_TIME_STABILIZE: Duration = Duration::from_secs(10);
+    const HISTORY_SIZE: usize = 100;
+    const HISTORY_TIME: Duration = Duration::from_millis(1000);
+
+
     let target_temperature: f32 = f32::from(t) / 10.0;
     let time_start = Instant::now();
     let time_between_reads: Duration = HISTORY_TIME / (HISTORY_SIZE as u32);
     let mut historical_data: [f32; HISTORY_SIZE] = [0.0; HISTORY_SIZE];
 
-    while true {
+    loop {
         let current_t: f32 = f32::from(get_current_temperature()?) / 10.0;
         println!("Temperature value: {} C", current_t);
         if current_t >= target_temperature {
@@ -78,7 +80,7 @@ fn set_temp(t: u16) -> Result<u16, Box<dyn Error>> {
         }
 
         if time_start.elapsed() >= MAX_TIME_STABILIZE {
-            return Err("The temperature vailed to stabilize".into()); // send NOT OK code
+            return Err("The temperature failed to stabilize".into()); // send NOT OK code
         }
         thread::sleep(time_between_reads);
     }
@@ -87,11 +89,11 @@ fn set_temp(t: u16) -> Result<u16, Box<dyn Error>> {
 fn main() {
     let result: Result<u16, Box<dyn Error>> = set_temp(1000);
 
-    if let Ok(value) = &result {
+    if let Ok(value) = result {
         println!("Success: {}", value);
     }
 
-    if let Err(error) = &result {
+    if let Err(error) = result {
         println!("Error: {}", error);
     }
     //println!("The return code is: {}", set_temp(1000).unwrap_or_default()); // 100.0 C 
